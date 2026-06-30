@@ -1,0 +1,10 @@
+XenoR2 Fodhelper Dropper Build
+Time: Sat 06/13/2026 13:31:46.37
+Domain: signindat.com
+Protocol: https
+C2 Port: 4444
+Payload: c:/xenor2/Easy.exe
+WinDefCtl: tools\WinDefCtl.exe
+Masq: RuntimeBroker.exe
+Restore: 1
+URL Prefix: /
