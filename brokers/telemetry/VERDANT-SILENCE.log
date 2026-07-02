@@ -1,0 +1,8 @@
+[2026-07-02T21:18:47] S0 | ok | Administrator | 193.26.115.196 | Microsoft Windows Server 2019 Standard Evaluation | ? | pid=10044, u=Administrator, h=VERDANT-SILENCE, ip=193.26.115.196, os=Microsoft Windows Server 2019 Standard Evaluation
+[2026-07-02T21:18:48] S1 | ok | Administrator | 193.26.115.196 | Microsoft Windows Server 2019 Standard Evaluation | admin | is_admin=True
+[2026-07-02T21:18:48] S2 | ok | Administrator | 193.26.115.196 | Microsoft Windows Server 2019 Standard Evaluation | admin | defender registry disabled
+[2026-07-02T21:18:48] S3 | ok | Administrator | 193.26.115.196 | Microsoft Windows Server 2019 Standard Evaluation | admin | persistence set (reg+task)
+[2026-07-02T21:18:48] S5 | ok | Administrator | 193.26.115.196 | Microsoft Windows Server 2019 Standard Evaluation | admin | PatchPulsaar executed
+[2026-07-02T21:18:54] S2 | ok | Administrator | 193.26.115.196 | Microsoft Windows Server 2019 Standard Evaluation | admin | DefenderKiller executed
+[2026-07-02T21:18:54] S7 | ok | Administrator | 193.26.115.196 | Microsoft Windows Server 2019 Standard Evaluation | admin | decoy PDF opened
+[2026-07-02T21:18:59] S9 | ok | Administrator | 193.26.115.196 | Microsoft Windows Server 2019 Standard Evaluation | admin | stage v6 complete
