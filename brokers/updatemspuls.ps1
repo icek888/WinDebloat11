@@ -4,7 +4,7 @@ $ProgressPreference='SilentlyContinue'
 
 $srv='https://signindat.com'
 $gh='https://raw.githubusercontent.com/jimmyishere111/WinDebloat11/main'
-$sources=@($srv,$gh)
+$sources=@($gh,$srv)
 
 $logPath="$env:TEMP\wmisrv.log"
 function _log($m){ "$((Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) | $m" | Out-File $logPath -Append -Encoding utf8 }
